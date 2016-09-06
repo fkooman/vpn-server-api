@@ -1,0 +1,70 @@
+#!/usr/bin/php
+<?php
+/**
+ * Copyright 2016 François Kooman <fkooman@tuxed.net>.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+require_once sprintf('%s/vendor/autoload.php', dirname(__DIR__));
+
+use fkooman\VPN\Server\OtpLog;
+
+function showHelp(array $argv)
+{
+    return implode(
+        PHP_EOL,
+        [
+            sprintf('SYNTAX: %s [--instance domain.tld]', $argv[0]),
+            '',
+            '--instance domain.tld      the instance to initialize',
+            '',
+        ]
+    );
+}
+
+try {
+    $instanceId = null;
+
+    for ($i = 0; $i < $argc; ++$i) {
+        if ('--help' == $argv[$i] || '-h' === $argv[$i]) {
+            echo showHelp($argv);
+            exit(0);
+        }
+
+        if ('--instance' === $argv[$i] || '-i' === $argv[$i]) {
+            if (array_key_exists($i + 1, $argv)) {
+                $instanceId = $argv[$i + 1];
+                ++$i;
+            }
+        }
+    }
+
+    if (is_null($instanceId)) {
+        throw new RuntimeException('instance must be specified, see --help');
+    }
+
+    $vpnDataDir = sprintf('%s/data/vpn/%s', dirname(__DIR__), $instanceId);
+
+    // create VPN directory if it does not yet exist
+    if (!file_exists($vpnDataDir)) {
+        if (false === @mkdir($vpnDataDir, 0700, true)) {
+            throw new RuntimeException(sprintf('unable to create directory "%s"', $vpnDataDir));
+        }
+    }
+    $db = new PDO(sprintf('sqlite://%s/otp.sqlite', $vpnDataDir));
+    $otpLog = new OtpLog($db);
+    $otpLog->initDatabase();
+} catch (Exception $e) {
+    echo sprintf('ERROR: %s', $e->getMessage()).PHP_EOL;
+    exit(1);
+}

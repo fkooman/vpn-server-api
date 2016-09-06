@@ -1,0 +1,61 @@
+#!/usr/bin/php
+<?php
+/**
+ * Copyright 2016 François Kooman <fkooman@tuxed.net>.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+require_once sprintf('%s/vendor/autoload.php', dirname(__DIR__));
+
+use fkooman\VPN\Server\Logger;
+use fkooman\VPN\Server\Exception\ConnectionException;
+
+$logger = new Logger(
+    basename($argv[0])
+);
+
+try {
+    $envData = [];
+    $envKeys = [
+        'INSTANCE_ID',
+        'POOL_ID',
+        'common_name',
+        'time_unix',
+        'ifconfig_pool_remote_ip',
+        'ifconfig_pool_remote_ip6',
+        'bytes_received',
+        'bytes_sent',
+        'time_duration',
+    ];
+
+    foreach ($envKeys as $envKey) {
+        $envValue = getenv($envKey);
+        if (empty($envValue)) {
+            throw new RuntimeException(sprintf('environment variable "%s" is not set', $envKey));
+        }
+        $envData[$envKey] = $envValue;
+    }
+
+    $envData['ok'] = true;
+    $logger->info(
+        json_encode($envData)
+    );
+} catch(ConnectionException $e) {
+    $envData['ok'] = false;
+    $envData['error_msg'] = $e->getMessage();
+    $logger->error(json_encode($envData));
+    exit(1);
+} catch (Exception $e) {
+    $logger->error($e->getMessage());
+    exit(1);
+}
