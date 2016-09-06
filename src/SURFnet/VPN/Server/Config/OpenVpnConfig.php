@@ -19,6 +19,7 @@ namespace SURFnet\VPN\Server\Config;
 
 use SURFnet\VPN\Server\InstanceConfig;
 use SURFnet\VPN\Server\PoolConfig;
+use RuntimeException;
 
 class OpenVpnConfig
 {
@@ -69,6 +70,17 @@ class OpenVpnConfig
             $poolConfig->s('proto', $proto);
             $poolConfig->s('port', $port);
             $poolConfig->s('managementPort', 11940 + $i);
+            $poolConfig->s(
+                'configName',
+                sprintf(
+                    'server-%s-%s-%s-%d.conf',
+                    $poolConfig->v('instanceId'),
+                    $poolConfig->v('poolId'),
+                    $poolConfig->v('proto'),
+                    $poolConfig->v('port')
+                )
+            );
+
             $this->writeProcess($poolConfig);
         }
     }
@@ -147,7 +159,11 @@ class OpenVpnConfig
 
         sort($serverConfig, SORT_STRING);
 
-        echo implode(PHP_EOL, $serverConfig).PHP_EOL;
+        $configFile = sprintf('%s/%s', $this->vpnConfigDir, $poolConfig->v('configName'));
+
+        if (false === @file_put_contents($configFile, implode(PHP_EOL, $serverConfig))) {
+            throw new RuntimeException(sprintf('unable to write configuration file "%s"', $configFile));
+        }
     }
 
     private static function getRoutes(PoolConfig $poolConfig)
