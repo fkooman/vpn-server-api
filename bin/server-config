@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 /**
- *  Copyright (C) 2016 SURFnet
+ *  Copyright (C) 2016 SURFnet.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -18,10 +18,10 @@
  */
 require_once sprintf('%s/vendor/autoload.php', dirname(__DIR__));
 
-use fkooman\VPN\Server\Utils;
-use fkooman\VPN\Server\IP;
-use fkooman\VPN\Server\InstanceConfig;
-use fkooman\VPN\Server\OpenVpnConfig;
+use SURFnet\VPN\Server\Utils;
+use SURFnet\VPN\Server\IP;
+use SURFnet\VPN\Server\InstanceConfig;
+use SURFnet\VPN\Server\OpenVpnConfig;
 
 function showHelp(array $argv)
 {

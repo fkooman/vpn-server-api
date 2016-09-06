@@ -1,6 +1,6 @@
 <?php
 /**
- *  Copyright (C) 2016 SURFnet
+ *  Copyright (C) 2016 SURFnet.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU Affero General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-namespace fkooman\VPN\Server;
+namespace SURFnet\VPN\Server;
 
 use PHPUnit_Framework_TestCase;
 
@@ -37,7 +37,7 @@ class ConnectionTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \fkooman\VPN\Server\Exception\ConnectionException
+     * @expectedException \SURFnet\VPN\Server\Exception\ConnectionException
      * @expectedExceptionMessage client not allowed, user is disabled
      */
     public function testDisabledUser()
@@ -56,7 +56,7 @@ class ConnectionTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \fkooman\VPN\Server\Exception\ConnectionException
+     * @expectedException \SURFnet\VPN\Server\Exception\ConnectionException
      * @expectedExceptionMessage client not allowed, CN is disabled
      */
     public function testDisabledCommonName()
@@ -90,7 +90,7 @@ class ConnectionTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \fkooman\VPN\Server\Exception\ConnectionException
+     * @expectedException \SURFnet\VPN\Server\Exception\ConnectionException
      * @expectedExceptionMessage client not allowed, not a member of "all"
      */
     public function testAclIsNoMember()

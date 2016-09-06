@@ -1,6 +1,6 @@
 <?php
 /**
- *  Copyright (C) 2016 SURFnet
+ *  Copyright (C) 2016 SURFnet.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -15,7 +15,7 @@
  *  You should have received a copy of the GNU Affero General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-namespace fkooman\VPN\Server;
+namespace SURFnet\VPN\Server;
 
 use PHPUnit_Framework_TestCase;
 use Otp\Otp;
@@ -52,7 +52,7 @@ class TwoFactorTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \fkooman\VPN\Server\Exception\TwoFactorException
+     * @expectedException \SURFnet\VPN\Server\Exception\TwoFactorException
      * @expectedExceptionMessage invalid OTP key
      */
     public function testTwoFactorWrongKey()
@@ -70,7 +70,7 @@ class TwoFactorTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \fkooman\VPN\Server\Exception\TwoFactorException
+     * @expectedException \SURFnet\VPN\Server\Exception\TwoFactorException
      * @expectedExceptionMessage OTP replayed
      */
     public function testTwoFactorReplay()
@@ -101,7 +101,7 @@ class TwoFactorTest extends PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \fkooman\VPN\Server\Exception\TwoFactorException
+     * @expectedException \SURFnet\VPN\Server\Exception\TwoFactorException
      * @expectedExceptionMessage no OTP secret registered
      */
     public function testTwoFactorNotEnrolled()

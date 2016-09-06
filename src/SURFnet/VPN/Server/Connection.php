@@ -1,6 +1,6 @@
 <?php
 /**
- *  Copyright (C) 2016 SURFnet
+ *  Copyright (C) 2016 SURFnet.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -15,9 +15,9 @@
  *  You should have received a copy of the GNU Affero General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-namespace fkooman\VPN\Server;
+namespace SURFnet\VPN\Server;
 
-use fkooman\VPN\Server\Exception\ConnectionException;
+use SURFnet\VPN\Server\Exception\ConnectionException;
 use RuntimeException;
 
 class Connection
@@ -57,7 +57,7 @@ class Connection
         if ($instanceConfig->pool($envData['POOL_ID'])->v('enableAcl', false)) {
             $aclGroupProvider = $instanceConfig->pool($envData['POOL_ID'])->v('aclGroupProvider');
             $groupProviderConfig = $instanceConfig->groupProvider($aclGroupProvider);
-            $groupProviderClass = sprintf('fkooman\VPN\Server\GroupProvider\%s', $aclGroupProvider);
+            $groupProviderClass = sprintf('SURFnet\VPN\Server\GroupProvider\%s', $aclGroupProvider);
             $groupProvider = new $groupProviderClass($groupProviderConfig);
             $aclGroupList = $instanceConfig->pool($envData['POOL_ID'])->v('aclGroupList', []);
 

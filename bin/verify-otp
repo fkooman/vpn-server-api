@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 /**
- *  Copyright (C) 2016 SURFnet
+ *  Copyright (C) 2016 SURFnet.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -18,10 +18,10 @@
  */
 require_once sprintf('%s/vendor/autoload.php', dirname(__DIR__));
 
-use fkooman\VPN\Server\TwoFactor;
-use fkooman\VPN\Server\Logger;
-use fkooman\VPN\Server\OtpLog;
-use fkooman\VPN\Server\Exception\TwoFactorException;
+use SURFnet\VPN\Server\TwoFactor;
+use SURFnet\VPN\Server\Logger;
+use SURFnet\VPN\Server\OtpLog;
+use SURFnet\VPN\Server\Exception\TwoFactorException;
 
 $logger = new Logger(
     basename($argv[0])
@@ -58,8 +58,7 @@ try {
     $logger->info(
         json_encode($envData)
     );
-
-} catch(TwoFactorException $e) {
+} catch (TwoFactorException $e) {
     $envData['ok'] = false;
     $envData['password'] = '_STRIPPED_';
     $envData['error_msg'] = $e->getMessage();
