@@ -44,6 +44,11 @@ class Config
         return new static($parsedConfig);
     }
 
+    public function s($key, $value)
+    {
+        $this->configData[$key] = $value;
+    }
+
     public function v($key, $defaultValue = null)
     {
         if (array_key_exists($key, $this->configData)) {

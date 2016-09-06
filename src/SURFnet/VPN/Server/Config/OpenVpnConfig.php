@@ -15,16 +15,70 @@
  *  You should have received a copy of the GNU Affero General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-namespace SURFnet\VPN\Server;
+namespace SURFnet\VPN\Server\Config;
 
-class OpenVpnConfig extends Config
+use SURFnet\VPN\Server\InstanceConfig;
+use SURFnet\VPN\Server\PoolConfig;
+
+class OpenVpnConfig
 {
-    public function getFile()
-    {
-        $tlsDir = sprintf('/etc/openvpn/tls/%s', $this->v('instanceId'));
+    /** @var string */
+    private $vpnConfigDir;
 
-        $rangeIp = new IP($this->v('range'));
-        $range6Ip = new IP($this->v('range6'));
+    public function __construct($vpnConfigDir)
+    {
+        $this->vpnConfigDir = $vpnConfigDir;
+    }
+
+    public function write($instanceId, InstanceConfig $instanceConfig)
+    {
+        $instanceNumber = $instanceConfig->instanceNumber();
+        foreach ($instanceConfig->pools() as $poolNumber => $poolId) {
+            $poolConfig = $instanceConfig->pool($poolId);
+            $poolConfig->s('instanceId', $instanceId);
+            $poolConfig->s('poolId', $poolId);
+            $this->writePool($instanceNumber, $poolNumber, $poolConfig);
+        }
+    }
+
+    private function writePool($instanceNumber, $poolNumber, PoolConfig $poolConfig)
+    {
+        $range = new IP($poolConfig->v('range'));
+        $range6 = new IP($poolConfig->v('range6'));
+        $processCount = self::getNetCount($range->getPrefix());
+
+        $splitRange = $range->split($processCount);
+        $splitRange6 = $range6->split($processCount);
+
+        $poolConfig->s('managementIp', sprintf('127.42.%d.%d', 100 + $instanceNumber, 100 + $poolNumber));
+
+        for ($i = 0; $i < $processCount; ++$i) {
+            // protocol is udp unless it is the last process when there is
+            // not just one process
+            if (1 === $processCount || $i !== $processCount - 1) {
+                $proto = 'udp';
+                $port = 1194 + $i;
+            } else {
+                $proto = 'tcp';
+                $port = 1194;
+            }
+
+            $poolConfig->s('range', $splitRange[$i]);
+            $poolConfig->s('range6', $splitRange6[$i]);
+            $poolConfig->s('dev', sprintf('tun-%d-%d-%d', $instanceNumber, $poolNumber, $i));
+            $poolConfig->s('proto', $proto);
+            $poolConfig->s('port', $port);
+            $poolConfig->s('managementPort', 11940 + $i);
+            $this->writeProcess($poolConfig);
+        }
+    }
+
+    private function writeProcess(PoolConfig $poolConfig)
+    {
+        $tlsDir = sprintf('/etc/openvpn/tls/%s', $poolConfig->v('instanceId'));
+
+        $rangeIp = new IP($poolConfig->v('range'));
+        $range6Ip = new IP($poolConfig->v('range6'));
 
         // static options
         $serverConfig = [
@@ -55,51 +109,51 @@ class OpenVpnConfig extends Config
             sprintf('server %s %s', $rangeIp->getNetwork(), $rangeIp->getNetmask()),
             sprintf('server-ipv6 %s', $range6Ip->getAddressPrefix()),
             sprintf('max-clients %d', $rangeIp->getNumberOfHosts() - 1),
-            sprintf('script-security %d', $this->v('twoFactor', false) ? 3 : 2),
-            sprintf('dev %s', $this->v('dev')),
-            sprintf('port %d', $this->v('port')),
-            sprintf('management %s %d', $this->v('managementIp'), $this->v('managementPort')),
-            sprintf('setenv INSTANCE_ID %s', $this->v('instanceId')),
-            sprintf('setenv POOL_ID %s', $this->v('poolId')),
-            sprintf('proto %s', 'tcp' === $this->v('proto') ? 'tcp-server' : 'udp'),
-            sprintf('local %s', 'tcp' === $this->v('proto') ? $this->v('managementIp') : $this->v('listen', '0.0.0.0')),
+            sprintf('script-security %d', $poolConfig->v('twoFactor', false) ? 3 : 2),
+            sprintf('dev %s', $poolConfig->v('dev')),
+            sprintf('port %d', $poolConfig->v('port')),
+            sprintf('management %s %d', $poolConfig->v('managementIp'), $poolConfig->v('managementPort')),
+            sprintf('setenv INSTANCE_ID %s', $poolConfig->v('instanceId')),
+            sprintf('setenv POOL_ID %s', $poolConfig->v('poolId')),
+            sprintf('proto %s', 'tcp' === $poolConfig->v('proto') ? 'tcp-server' : 'udp'),
+            sprintf('local %s', 'tcp' === $poolConfig->v('proto') ? $poolConfig->v('managementIp') : $poolConfig->v('listen', '0.0.0.0')),
 
             // increase the renegotiation time to 8h from the default of 1h when
             // using 2FA, otherwise the user would be asked for the 2FA key every
             // hour
-            sprintf('reneg-sec %d', $this->v('twoFactor', false) ? 28800 : 3600),
+            sprintf('reneg-sec %d', $poolConfig->v('twoFactor', false) ? 28800 : 3600),
         ];
 
-        if ($this->v('enableLog', false)) {
+        if ($poolConfig->v('enableLog', false)) {
             $serverConfig[] = 'log /dev/null';
         }
 
-        if ('tcp' === $this->v('proto')) {
+        if ('tcp' === $poolConfig->v('proto')) {
             $serverConfig[] = 'tcp-nodelay';
         }
 
-        if (!$this->v('twoFactor', false)) {
+        if (!$poolConfig->v('twoFactor', false)) {
             $serverConfig[] = 'auth-user-pass-verify /usr/bin/vpn-server-api-verify-otp via-env';
         }
 
         // Routes
-        $serverConfig = array_merge($serverConfig, self::getRoutes());
+        $serverConfig = array_merge($serverConfig, self::getRoutes($poolConfig));
 
         // DNS
-        $serverConfig = array_merge($serverConfig, self::getDns());
+        $serverConfig = array_merge($serverConfig, self::getDns($poolConfig));
 
         // Client-to-client
-        $serverConfig = array_merge($serverConfig, self::getClientToClient());
+        $serverConfig = array_merge($serverConfig, self::getClientToClient($poolConfig));
 
         sort($serverConfig, SORT_STRING);
 
-        return implode(PHP_EOL, $serverConfig).PHP_EOL;
+        echo implode(PHP_EOL, $serverConfig).PHP_EOL;
     }
 
-    private function getRoutes()
+    private static function getRoutes(PoolConfig $poolConfig)
     {
         $routeConfig = [];
-        if ($this->v('defaultGateway', false)) {
+        if ($poolConfig->v('defaultGateway', false)) {
             $routeConfig[] = 'push "redirect-gateway def1 bypass-dhcp"';
 
             // for Windows clients we need this extra route to mark the TAP adapter as
@@ -119,7 +173,7 @@ class OpenVpnConfig extends Config
             $routeConfig[] = 'push "route-ipv6 2000::/3"';
         } else {
             // there may be some routes specified, push those, and not the default
-            foreach ($this->v('routes', []) as $route) {
+            foreach ($poolConfig->v('routes', []) as $route) {
                 $routeIp = new IP($route);
                 if (6 === $routeIp->getFamily()) {
                     // IPv6
@@ -134,15 +188,15 @@ class OpenVpnConfig extends Config
         return $routeConfig;
     }
 
-    private function getDns()
+    private static function getDns(PoolConfig $poolConfig)
     {
         // only push DNS if we are the default route
-        if (!$this->v('defaultGateway', false)) {
+        if (!$poolConfig->v('defaultGateway', false)) {
             return [];
         }
 
         $dnsEntries = [];
-        foreach ($this->v('dns', []) as $dnsAddress) {
+        foreach ($poolConfig->v('dns', []) as $dnsAddress) {
             $dnsEntries[] = sprintf('push "dhcp-option DNS %s"', $dnsAddress);
         }
 
@@ -152,19 +206,48 @@ class OpenVpnConfig extends Config
         return $dnsEntries;
     }
 
-    private function getClientToClient()
+    private static function getClientToClient(PoolConfig $poolConfig)
     {
-        if (!$this->v('clientToClient', false)) {
+        if (!$poolConfig->v('clientToClient', false)) {
             return [];
         }
 
-        $rangeIp = new IP($this->v('range'));
-        $range6Ip = new IP($this->v('range6'));
+        $rangeIp = new IP($poolConfig->v('range'));
+        $range6Ip = new IP($poolConfig->v('range6'));
 
         return [
             'client-to-client',
             sprintf('push "route %s %s"', $rangeIp->getAddress(), $rangeIp->getNetmask()),
             sprintf('push "route-ipv6 %s"', $range6Ip->getAddressPrefix()),
         ];
+    }
+
+    /**
+     * Depending on the prefix we will divide it in a number of nets to
+     * balance the load over the processes, it is recommended to use a least
+     * a /24.
+     *
+     * A /24 or 'bigger' will be split in 4 networks, everything 'smaller'
+     * will be either be split in 2 networks or remain 1 network.
+     */
+    private static function getNetCount($prefix)
+    {
+        switch ($prefix) {
+            case 32:    // 1 IP
+            case 31:    // 2 IPs
+                throw new RuntimeException('not enough available IPs in range');
+            case 30:    // 4 IPs (1 usable for client, no splitting)
+            case 29:    // 8 IPs (5 usable for clients, no splitting)
+                return 1;
+            case 28:    // 16 IPs (12 usable for clients)
+            case 27:    // 32 IPs
+            case 26:    // 64 IPs
+            case 25:    // 128 IPs
+                return 2;
+            case 24:
+                return 4;
+        }
+
+        return 8;
     }
 }

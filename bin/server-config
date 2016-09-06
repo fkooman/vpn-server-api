@@ -18,10 +18,8 @@
  */
 require_once sprintf('%s/vendor/autoload.php', dirname(__DIR__));
 
-use SURFnet\VPN\Server\Utils;
-use SURFnet\VPN\Server\IP;
 use SURFnet\VPN\Server\InstanceConfig;
-use SURFnet\VPN\Server\OpenVpnConfig;
+use SURFnet\VPN\Server\Config\OpenVpnConfig;
 
 function showHelp(array $argv)
 {
@@ -30,7 +28,7 @@ function showHelp(array $argv)
         [
             sprintf('SYNTAX: %s [--instance domain.tld]', $argv[0]),
             '',
-            '--instance domain.tld      the instance to write configuration files',
+            '--instance domain.tld      the VPN instance to write configuration files',
             '                           for',
             '',
         ]
@@ -60,61 +58,8 @@ try {
 
     $configFile = sprintf('%s/config/%s/config.yaml', dirname(__DIR__), $instanceId);
     $instanceConfig = InstanceConfig::fromFile($configFile);
-    $instanceNumber = $instanceConfig->instanceNumber();
-
-    $poolList = $instanceConfig->pools();
-    $j = 0;
-    foreach ($poolList as $poolId) {
-        $poolData = $instanceConfig->pool($poolId)->toArray();
-        $poolData['instanceId'] = $instanceId;
-        $poolData['poolId'] = $poolId;
-        $poolData['managementIp'] = sprintf('127.42.%d.%d', 100 + $instanceNumber, 100 + $j);
-
-        // determine the number of OpenVPN processes
-        $range = new IP($poolData['range']);
-        $range6 = new IP($poolData['range6']);
-        $processCount = Utils::getNetCount($range->getPrefix());
-
-        $splitRange = $range->split($processCount);
-        $splitRange6 = $range6->split($processCount);
-
-        for ($k = 0; $k < $processCount; ++$k) {
-            // protocol is udp unless it is the last process when there is
-            // not just one process
-            if (1 === $processCount || $k !== $processCount - 1) {
-                $proto = 'udp';
-                $port = 1194 + $k;
-            } else {
-                $proto = 'tcp';
-                $port = 1194;
-            }
-
-            $poolData = array_merge(
-                $poolData,
-                [
-                    'range' => $splitRange[$k],
-                    'range6' => $splitRange6[$k],
-                    'dev' => sprintf('tun-%d-%d-%d', $instanceNumber, $j, $k),
-                    'proto' => $proto,
-                    'port' => $port,
-                    'managementPort' => 11940 + $k,
-                ]
-            );
-
-            $configFileName = sprintf('server-%s-%s-%s-%d.conf', $instanceId, $poolId, $proto, $port);
-
-            $instancePoolList[$configFileName] = $poolData;
-        }
-        ++$j;
-    }
-
-    foreach ($instancePoolList as $configFileName => $processData) {
-        echo '------------------------------'.PHP_EOL;
-        echo $configFileName.PHP_EOL;
-        echo '------------------------------'.PHP_EOL;
-        $s = new OpenVpnConfig($processData);
-        echo $s->getFile();
-    }
+    $o = new OpenVpnConfig('/etc/openvpn');
+    $o->write($instanceId, $instanceConfig);
 } catch (Exception $e) {
     echo sprintf('ERROR: %s', $e->getMessage()).PHP_EOL;
     exit(1);
