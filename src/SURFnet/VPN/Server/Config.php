@@ -38,7 +38,7 @@ class Config
         $parsedConfig = @yaml_parse_file($configFile);
 
         if (!is_array($parsedConfig)) {
-            throw new ConfigException('invalid configuration file format');
+            throw new ConfigException(sprintf('invalid configuration file format in "%s"', $configFile));
         }
 
         return new static($parsedConfig);

@@ -23,6 +23,9 @@ use fkooman\Rest\Plugin\Authentication\AuthenticationPlugin;
 use fkooman\Rest\Plugin\Authentication\Bearer\ArrayBearerValidator;
 use fkooman\Rest\Plugin\Authentication\Bearer\BearerAuthentication;
 use fkooman\Rest\Service;
+use SURFnet\VPN\Server\Config;
+use SURFnet\VPN\Server\Logger;
+use SURFnet\VPN\Server\InstanceConfig;
 use SURFnet\VPN\Server\Api\CommonNamesModule;
 use SURFnet\VPN\Server\Api\InfoModule;
 use SURFnet\VPN\Server\Api\LogModule;
@@ -30,8 +33,8 @@ use SURFnet\VPN\Server\Api\OpenVpnModule;
 use SURFnet\VPN\Server\Api\UsersModule;
 use SURFnet\VPN\Server\Api\Users;
 use SURFnet\VPN\Server\Api\CommonNames;
-use SURFnet\VPN\Server\OpenVpn\ManagementSocket;
-use SURFnet\VPN\Server\OpenVpn\ServerManager;
+use SURFnet\VPN\Server\Api\OpenVpn\ManagementSocket;
+use SURFnet\VPN\Server\Api\OpenVpn\ServerManager;
 
 $logger = new Logger('vpn-server-api');
 
@@ -40,13 +43,17 @@ try {
 
     // this actually uses SERVER_NAME (hardcoded in Apache), and not HTTP_HOST
     // that could be determined by client
-    $instanceId = $request->getHost();
+    $instanceId = $request->getUrl()->getHost();
 
     $dataDir = sprintf('%s/data/%s', dirname(__DIR__), $instanceId);
     $configDir = sprintf('%s/config/%s', dirname(__DIR__), $instanceId);
 
     $instanceConfig = InstanceConfig::fromFile(
         sprintf('%s/config.yaml', $configDir)
+    );
+
+    $apiConfig = Config::fromFile(
+        sprintf('%s/api.yaml', $configDir)
     );
 
     $poolList = [];
@@ -58,7 +65,6 @@ try {
     $authenticationPlugin->register(
         new BearerAuthentication(
             new ArrayBearerValidator(
-                // XXX fix config thingy, no longer exists
                 $apiConfig->v('api')
             ),
             ['realm' => 'VPN Server API']
@@ -73,7 +79,6 @@ try {
     );
     $service->addModule(
         new OpenVpnModule(
-            // XXX fix servermanager
             new ServerManager($poolList, new ManagementSocket(), $logger)
         )
     );
@@ -90,7 +95,6 @@ try {
         )
     );
     $service->addModule(
-        // XXX file infomodule
         new InfoModule($poolList)
     );
 
