@@ -26,10 +26,11 @@ function showHelp(array $argv)
     return implode(
         PHP_EOL,
         [
-            sprintf('SYNTAX: %s [--instance domain.tld]', $argv[0]),
+            sprintf('SYNTAX: %s [--instance domain.tld] [--generate]', $argv[0]),
             '',
             '--instance domain.tld      the VPN instance to write configuration files',
             '                           for',
+            '--generate                 generate new certificates/keys for this instance',
             '',
         ]
     );
@@ -37,6 +38,7 @@ function showHelp(array $argv)
 
 try {
     $instanceId = null;
+    $generateCerts = false;
 
     for ($i = 0; $i < $argc; ++$i) {
         if ('--help' == $argv[$i] || '-h' === $argv[$i]) {
@@ -49,6 +51,10 @@ try {
                 $instanceId = $argv[$i + 1];
                 ++$i;
             }
+        }
+
+        if ('--generate' === $argv[$i] || '-g' === $argv[$i]) {
+            $generateCerts = true;
         }
     }
 
