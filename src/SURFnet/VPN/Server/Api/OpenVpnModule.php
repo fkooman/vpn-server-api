@@ -20,10 +20,8 @@ namespace SURFnet\VPN\Server\Api;
 use fkooman\Http\Request;
 use fkooman\Rest\Service;
 use fkooman\Rest\ServiceModuleInterface;
-use SURFnet\VPN\Server\InputValidation;
 use fkooman\Rest\Plugin\Authentication\Bearer\TokenInfo;
-use SURFnet\VPN\Server\Api\OpenVpn\ServerManager;
-use SURFnet\VPN\Server\ApiResponse;
+use SURFnet\VPN\Server\OpenVpn\ServerManager;
 
 class OpenVpnModule implements ServiceModuleInterface
 {

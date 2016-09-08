@@ -21,9 +21,7 @@ use fkooman\Http\Request;
 use fkooman\Rest\Service;
 use fkooman\Rest\ServiceModuleInterface;
 use Psr\Log\LoggerInterface;
-use SURFnet\VPN\Server\InputValidation;
 use fkooman\Rest\Plugin\Authentication\Bearer\TokenInfo;
-use SURFnet\VPN\Server\ApiResponse;
 
 class CommonNamesModule implements ServiceModuleInterface
 {

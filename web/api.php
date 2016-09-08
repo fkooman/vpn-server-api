@@ -33,8 +33,8 @@ use SURFnet\VPN\Server\Api\OpenVpnModule;
 use SURFnet\VPN\Server\Api\UsersModule;
 use SURFnet\VPN\Server\Api\Users;
 use SURFnet\VPN\Server\Api\CommonNames;
-use SURFnet\VPN\Server\Api\OpenVpn\ManagementSocket;
-use SURFnet\VPN\Server\Api\OpenVpn\ServerManager;
+use SURFnet\VPN\Server\OpenVpn\ManagementSocket;
+use SURFnet\VPN\Server\OpenVpn\ServerManager;
 
 $logger = new Logger('vpn-server-api');
 
@@ -79,7 +79,7 @@ try {
     );
     $service->addModule(
         new OpenVpnModule(
-            new ServerManager($poolList, new ManagementSocket(), $logger)
+            new ServerManager($instanceConfig, new ManagementSocket(), $logger)
         )
     );
     $service->addModule(

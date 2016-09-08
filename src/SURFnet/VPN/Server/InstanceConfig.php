@@ -33,6 +33,7 @@ class InstanceConfig extends Config
             throw new InstanceException('missing "vpnPools" in configuration');
         }
 
+        // XXX must be of type array also
         if (!array_key_exists($poolId, $this->configData['vpnPools'])) {
             throw new InstanceException(sprintf('pool "%s" not found in "vpnPools"', $poolId));
         }
@@ -54,6 +55,7 @@ class InstanceConfig extends Config
             throw new InstanceException('missing "groupProviders" in configuration');
         }
 
+        // XXX must be of type array also
         if (!array_key_exists($groupProviderId, $this->configData['groupProviders'])) {
             return [];
         }

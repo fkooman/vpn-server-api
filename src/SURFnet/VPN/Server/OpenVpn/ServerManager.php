@@ -15,18 +15,19 @@
  *  You should have received a copy of the GNU Affero General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-namespace SURFnet\VPN\Server\Api\OpenVpn;
+namespace SURFnet\VPN\Server\OpenVpn;
 
 use Psr\Log\LoggerInterface;
-use SURFnet\VPN\Server\Api\OpenVpn\Exception\ManagementSocketException;
+use SURFnet\VPN\Server\OpenVpn\Exception\ManagementSocketException;
+use SURFnet\VPN\Server\InstanceConfig;
 
 /**
  * Manage all OpenVPN processes controlled by this service.
  */
 class ServerManager
 {
-    /** @var array */
-    private $poolList;
+    /** @var \SURFnet\VPN\Server\InstanceConfig */
+    private $instanceConfig;
 
     /** @var ManagementSocketInterface */
     private $managementSocket;
@@ -34,9 +35,9 @@ class ServerManager
     /** @var \Psr\Log\LoggerInterface */
     private $logger;
 
-    public function __construct(array $poolList, ManagementSocketInterface $managementSocket, LoggerInterface $logger)
+    public function __construct(InstanceConfig $instanceConfig, ManagementSocketInterface $managementSocket, LoggerInterface $logger)
     {
-        $this->poolList = $poolList;
+        $this->instanceConfig = $instanceConfig;
         $this->managementSocket = $managementSocket;
         $this->logger = $logger;
     }
@@ -47,18 +48,21 @@ class ServerManager
     public function connections()
     {
         $clientConnections = [];
+
         // loop over all pools
-        foreach ($this->poolList as $pool) {
+        foreach ($this->instanceConfig->pools() as $poolNumber => $poolId) {
+            $poolConfig = $this->instanceConfig->pool($poolId);
+            $managementIp = sprintf('127.42.%d.%d', 100 + $this->instanceConfig->instanceNumber(), 100 + $poolNumber);
             $poolConnections = [];
             // loop over all processes
-            foreach ($pool->getInstances() as $i => $instance) {
+            for ($i = 0; $i < $poolConfig->getProcessCount(); ++$i) {
                 // add all connections from this instance to poolConnections
                 try {
                     // open the socket connection
                     $this->managementSocket->open(
                         sprintf(
                             'tcp://%s:%d',
-                            $pool->getManagementIp()->getAddress(),
+                            $managementIp,
                             11940 + $i
                         )
                     );
@@ -73,7 +77,7 @@ class ServerManager
                     $this->logger->error(
                         sprintf(
                             'error with socket "%s:%s", message: "%s"',
-                            $pool->getManagementIp()->getAddress(),
+                            $managementIp,
                             11940 + $i,
                             $e->getMessage()
                         )
@@ -81,7 +85,7 @@ class ServerManager
                 }
             }
             // we add the poolConnections to the clientConnections array
-            $clientConnections[] = ['id' => $pool->getId(), 'connections' => $poolConnections];
+            $clientConnections[] = ['id' => $poolId, 'connections' => $poolConnections];
         }
 
         return $clientConnections;
@@ -97,16 +101,19 @@ class ServerManager
     {
         $clientsKilled = 0;
         // loop over all pools
-        foreach ($this->pools as $pool) {
-            // loop over all instances
-            foreach ($pool->getInstances() as $i => $instance) {
+        foreach ($this->instanceConfig->pools() as $poolNumber => $poolId) {
+            $poolConfig = $this->instanceConfig->pool($poolId);
+            $managementIp = sprintf('127.42.%d.%d', 100 + $this->instanceConfig->instanceNumber(), 100 + $poolNumber);
+
+            // loop over all processes
+            for ($i = 0; $i < $poolConfig->getProcessCount(); ++$i) {
                 // add all kills from this instance to poolKills
                 try {
                     // open the socket connection
                     $this->managementSocket->open(
                         sprintf(
                             'tcp://%s:%d',
-                            $pool->getManagementIp()->getAddress(),
+                            $managementIp,
                             11940 + $i
                         )
                     );
@@ -122,7 +129,7 @@ class ServerManager
                     $this->logger->error(
                         sprintf(
                             'error with socket "%s:%s", message: "%s"',
-                            $pool->getManagementIp()->getAddress(),
+                            $managementIp,
                             11940 + $i,
                             $e->getMessage()
                         )

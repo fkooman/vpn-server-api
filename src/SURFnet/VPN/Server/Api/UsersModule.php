@@ -22,7 +22,6 @@ use fkooman\Rest\Service;
 use fkooman\Rest\ServiceModuleInterface;
 use Psr\Log\LoggerInterface;
 use fkooman\Rest\Plugin\Authentication\Bearer\TokenInfo;
-use SURFnet\VPN\Server\ApiResponse;
 
 /**
  * Handle API calls for Users.
@@ -52,6 +51,16 @@ class UsersModule implements ServiceModuleInterface
                 $tokenInfo->getScope()->requireScope(['admin']);
 
                 return new ApiResponse('users', $this->users->getDisabled());
+            }
+        );
+
+        $service->get(
+            '/users/disabled/:userId',
+            function ($userId, Request $request, TokenInfo $tokenInfo) {
+                $tokenInfo->getScope()->requireScope(['admin']);
+                InputValidation::userId($userId);
+
+                return new ApiResponse('disabled', $this->users->isDisabled($userId));
             }
         );
 

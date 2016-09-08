@@ -59,6 +59,13 @@ class Users
         return $disabledList;
     }
 
+    public function isDisabled($userId)
+    {
+        $disableFile = sprintf('%s/%s', $this->disableDir, $userId);
+
+        return @file_exists($disableFile);
+    }
+
     public function setDisabled($userId)
     {
         $disableFile = sprintf('%s/%s', $this->disableDir, $userId);

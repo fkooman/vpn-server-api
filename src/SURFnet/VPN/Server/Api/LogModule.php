@@ -20,10 +20,8 @@ namespace SURFnet\VPN\Server\Api;
 use fkooman\Http\Request;
 use fkooman\Rest\Service;
 use fkooman\Rest\ServiceModuleInterface;
-use SURFnet\VPN\Server\InputValidation;
 use fkooman\Rest\Plugin\Authentication\Bearer\TokenInfo;
 use DateTime;
-use SURFnet\VPN\Server\ApiResponse;
 use fkooman\Json\Json;
 
 class LogModule implements ServiceModuleInterface

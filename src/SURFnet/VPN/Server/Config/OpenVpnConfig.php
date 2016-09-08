@@ -19,6 +19,7 @@ namespace SURFnet\VPN\Server\Config;
 
 use SURFnet\VPN\Server\InstanceConfig;
 use SURFnet\VPN\Server\PoolConfig;
+use SURFnet\VPN\Server\IP;
 use RuntimeException;
 
 class OpenVpnConfig
@@ -46,7 +47,7 @@ class OpenVpnConfig
     {
         $range = new IP($poolConfig->v('range'));
         $range6 = new IP($poolConfig->v('range6'));
-        $processCount = self::getNetCount($range->getPrefix());
+        $processCount = $poolConfig->getProcessCount();
 
         $splitRange = $range->split($processCount);
         $splitRange6 = $range6->split($processCount);
@@ -144,7 +145,7 @@ class OpenVpnConfig
             $serverConfig[] = 'tcp-nodelay';
         }
 
-        if (!$poolConfig->v('twoFactor', false)) {
+        if ($poolConfig->v('twoFactor', false)) {
             $serverConfig[] = 'auth-user-pass-verify /usr/bin/vpn-server-api-verify-otp via-env';
         }
 
@@ -236,34 +237,5 @@ class OpenVpnConfig
             sprintf('push "route %s %s"', $rangeIp->getAddress(), $rangeIp->getNetmask()),
             sprintf('push "route-ipv6 %s"', $range6Ip->getAddressPrefix()),
         ];
-    }
-
-    /**
-     * Depending on the prefix we will divide it in a number of nets to
-     * balance the load over the processes, it is recommended to use a least
-     * a /24.
-     *
-     * A /24 or 'bigger' will be split in 4 networks, everything 'smaller'
-     * will be either be split in 2 networks or remain 1 network.
-     */
-    private static function getNetCount($prefix)
-    {
-        switch ($prefix) {
-            case 32:    // 1 IP
-            case 31:    // 2 IPs
-                throw new RuntimeException('not enough available IPs in range');
-            case 30:    // 4 IPs (1 usable for client, no splitting)
-            case 29:    // 8 IPs (5 usable for clients, no splitting)
-                return 1;
-            case 28:    // 16 IPs (12 usable for clients)
-            case 27:    // 32 IPs
-            case 26:    // 64 IPs
-            case 25:    // 128 IPs
-                return 2;
-            case 24:
-                return 4;
-        }
-
-        return 8;
     }
 }
